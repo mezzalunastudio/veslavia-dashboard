@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { safeRedirect } from '@/utils/redirect';
 
 interface User {
   id: string;
@@ -219,8 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newUser);
         
         setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
+          safeRedirect('/dashboard');
         }, 100);
       }
     } catch (error) {
