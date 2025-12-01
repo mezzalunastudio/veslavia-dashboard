@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ImagePlus, Music, Upload, Trash2, Eye, Loader2 } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ImagePlus, Music, Upload, Trash2, Eye, Loader2, X } from "lucide-react"
 import { Wedding, getWedding, updateWedding } from "@/lib/api/wedding"
 import { fetchImageUrls, uploadImage, deleteImage, uploadAudio } from "@/lib/api/media"
 
@@ -37,6 +38,7 @@ export default function MediaManagement({ weddingId }: MediaManagementProps) {
     file: File | null
     uploading: boolean
   }>({ file: null, uploading: false })
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null)
 
   const imageFields = [
     { key: "groomImg", label: "Groom Photo", description: "Portrait photo of the groom" },
@@ -171,37 +173,37 @@ export default function MediaManagement({ weddingId }: MediaManagementProps) {
     }
   }
 
-const handleDeleteImage = async (fieldKey: string) => {
-  if (!wedding) return
+  const handleDeleteImage = async (fieldKey: string) => {
+    if (!wedding) return
 
-  try {
-    setUploading(true)
-    
-    const imageKey = wedding.imageUrl?.[fieldKey as keyof typeof wedding.imageUrl]
-    if (!imageKey) return
+    try {
+      setUploading(true)
+      
+      const imageKey = wedding.imageUrl?.[fieldKey as keyof typeof wedding.imageUrl]
+      if (!imageKey) return
 
-    await deleteImage(imageKey)
+      await deleteImage(imageKey)
 
-    const updatedImageUrl = { ...wedding.imageUrl }
-    delete updatedImageUrl[fieldKey as keyof typeof wedding.imageUrl]
+      const updatedImageUrl = { ...wedding.imageUrl }
+      delete updatedImageUrl[fieldKey as keyof typeof wedding.imageUrl]
 
-    const updatedWedding = await updateWedding(weddingId, {
-      imageUrl: updatedImageUrl
-    })
+      const updatedWedding = await updateWedding(weddingId, {
+        imageUrl: updatedImageUrl
+      })
 
-    setImageUrlMap(prev => {
-      const newMap = { ...prev }
-      delete newMap[imageKey]
-      return newMap
-    })
+      setImageUrlMap(prev => {
+        const newMap = { ...prev }
+        delete newMap[imageKey]
+        return newMap
+      })
 
-    setWedding(updatedWedding.data)
-  } catch (error) {
-    console.error(`Failed to delete ${fieldKey}:`, error)
-  } finally {
-    setUploading(false)
+      setWedding(updatedWedding.data)
+    } catch (error) {
+      console.error(`Failed to delete ${fieldKey}:`, error)
+    } finally {
+      setUploading(false)
+    }
   }
-}
 
   const updateYoutubeVideo = async (videoId: string) => {
     if (!wedding) return
@@ -226,6 +228,65 @@ const handleDeleteImage = async (fieldKey: string) => {
   const getImageUrl = (imageKey: string | undefined): string | null => {
     if (!imageKey) return null
     return imageUrlMap[imageKey] || null
+  }
+
+  // Image Dialog Component
+  const ImageDialog = ({ imageUrl, alt, children }: { imageUrl: string; alt: string; children: React.ReactNode }) => {
+    const [imgDimensions, setImgDimensions] = useState<{ width: number; height: number } | null>(null)
+    const [imgLoaded, setImgLoaded] = useState(false)
+
+    useEffect(() => {
+      // Preload image to get dimensions
+      const img = new Image()
+      img.onload = () => {
+        setImgDimensions({ width: img.width, height: img.height })
+        setImgLoaded(true)
+      }
+      img.src = imageUrl
+    }, [imageUrl])
+
+    const getDialogClass = () => {
+      if (!imgDimensions) return "max-w-4xl"
+      
+      const aspectRatio = imgDimensions.width / imgDimensions.height
+      
+      if (aspectRatio > 1.5) {
+        return "max-w-6xl" // Wide images
+      } else if (aspectRatio < 0.8) {
+        return "max-w-2xl" // Tall images
+      } else {
+        return "max-w-4xl" // Square-ish images
+      }
+    }
+
+    return (
+      <Dialog>
+        <DialogTrigger asChild>
+          {children}
+        </DialogTrigger>
+        <DialogContent className={`p-0 bg-transparent border-none shadow-none ${getDialogClass()}`} showCloseButton={false}>
+          <DialogTitle></DialogTitle>
+          <div className="relative rounded-lg overflow-hidden">
+            <div className="flex items-center justify-center p-4">
+              {imgLoaded ? (
+                <img
+                  src={imageUrl}
+                  alt={alt}
+                  className="max-h-[80vh] max-w-full object-contain rounded-lg"
+                  style={{
+                    aspectRatio: imgDimensions ? `${imgDimensions.width}/${imgDimensions.height}` : 'auto'
+                  }}
+                />
+              ) : (
+                <div className="flex items-center justify-center h-64 w-64">
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   if (loading) {
@@ -287,17 +348,18 @@ const handleDeleteImage = async (fieldKey: string) => {
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <ImageDialog imageUrl={imageUrl} alt={label}>
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="h-8"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Button>
+                          </ImageDialog>
                           <Button
-                            variant="secondary"
-                            size="sm"
-                            className="h-8"
-                            onClick={() => window.open(imageUrl, '_blank')}
-                          >
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Button>
-                          <Button
-                            variant="destructive"
+                            variant="default"
                             size="sm"
                             className="h-8"
                             onClick={() => handleDeleteImage(key)}
