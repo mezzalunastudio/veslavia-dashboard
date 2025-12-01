@@ -1,4 +1,3 @@
-// contexts/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -21,7 +20,7 @@ interface AuthContextType {
   loading: boolean;
   postLoginLoading: boolean;
   refreshUser: () => Promise<boolean>;
-  refreshToken: () => Promise<boolean>
+  refreshToken: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,76 +28,110 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [postLoginLoading, setPostLoginLoading] = useState(false);
   const router = useRouter();
-  const [postLoginLoading, setPostLoginLoading] = useState(false)
+  const pathname = usePathname();
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-    const refreshToken = async (): Promise<boolean> => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-
-      if (response.ok) {
-        console.log('Token refreshed successfully')
-        return true
-      } else {
-        console.error('Failed to refresh token')
-        await logout()
-        return false
-      }
-    } catch (error) {
-      console.error('Error refreshing token:', error)
-      await logout()
-      return false
-    }
-  }
-
-  const checkAuth = async () => {
-    // Skip auth check jika di halaman auth
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth')) {
-      setLoading(false)
-      return
-    }
-
+  // Helper function untuk mendapatkan user data
+  const getCurrentUser = async (): Promise<User | null> => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
+        method: 'GET',
         credentials: 'include',
-        // Tambahkan cache control
         headers: {
           'Cache-Control': 'no-cache',
         },
-      })
+      });
 
       if (response.ok) {
-        const data = await response.json()
-        const userData = data.data?.user || data.user
+        const data = await response.json();
+        const userData = data.data?.user || data.user;
         if (userData) {
-          setUser({
+          return {
             id: userData.id || userData._id,
             email: userData.email,
             name: userData.name,
             role: userData.role,
             verified: userData.verified,
-          })
+          };
         }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+  };
+
+  const refreshToken = async (): Promise<boolean> => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      if (response.ok) {
+        console.log('Token refreshed successfully');
+        return true;
       } else {
-        setUser(null)
+        console.error('Failed to refresh token');
+        await logout();
+        return false;
       }
     } catch (error) {
-      console.error('Auth check failed:', error)
-      setUser(null)
-    } finally {
-      setLoading(false)
+      console.error('Error refreshing token:', error);
+      await logout();
+      return false;
     }
-  }
+  };
+
+  // SINGLE useEffect untuk initialize auth
+  useEffect(() => {
+    const initializeAuth = async () => {
+      // Skip auth check untuk halaman auth
+      if (pathname?.startsWith('/auth')) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const userData = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, []); // Hanya run sekali saat mount
+
+  // Setup automatic token refresh
+  useEffect(() => {
+    if (!user) return;
+
+    const REFRESH_INTERVAL = 14 * 60 * 1000; // 14 menit (sebelum token expire)
+
+    const refreshInterval = setInterval(async () => {
+      const success = await refreshToken();
+      if (success) {
+        const userData = await getCurrentUser();
+        if (userData) {
+          setUser(userData);
+        }
+      }
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(refreshInterval);
+  }, [user]);
 
   const login = async (email: string, password: string) => {
-    setLoading(true);
     setPostLoginLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
@@ -118,34 +151,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
       console.log('Login response:', data);
 
-      // SET USER DATA LANGSUNG DARI RESPONSE LOGIN
+      // Set user data
       const userData = data.data?.user || data.user;
       if (userData) {
-        setUser({
+        const newUser = {
           id: userData.id || userData._id,
           email: userData.email,
           name: userData.name,
           role: userData.role,
           verified: userData.verified,
-        });
+        };
+        setUser(newUser);
+        
+        // Tunggu state update, lalu redirect
+        setTimeout(() => {
+          router.push('/dashboard');
+          router.refresh(); // Force refresh untuk memastikan
+        }, 100);
       }
-
-      // Tunggu sebentar untuk memastikan state ter-update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Redirect
-      router.push('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       throw error;
     } finally {
-      setLoading(false);
       setPostLoginLoading(false);
     }
   };
 
   const loginWithGoogle = async (token: string) => {
-    setLoading(true);
     setPostLoginLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/google`, {
@@ -165,33 +197,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
       console.log('Google login response:', data);
 
-      // SET USER DATA LANGSUNG DARI RESPONSE
       const userData = data.data?.user || data.user;
       if (userData) {
-        setUser({
+        const newUser = {
           id: userData.id || userData._id,
           email: userData.email,
           name: userData.name,
           role: userData.role,
           verified: userData.verified,
-        });
+        };
+        setUser(newUser);
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+          router.refresh();
+        }, 100);
       }
-
-      await new Promise(resolve => setTimeout(resolve, 100));
-      router.push('/dashboard');
     } catch (error) {
       console.error('Google login error:', error);
       throw error;
     } finally {
-      setLoading(false);
       setPostLoginLoading(false);
     }
   };
 
-  // contexts/AuthContext.tsx - perbaiki register function
   const register = async (email: string, password: string, name: string) => {
-    setLoading(true);
-    setPostLoginLoading(true); // Tambahkan ini
+    setPostLoginLoading(true);
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
         method: 'POST',
@@ -210,28 +241,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await response.json();
       console.log('Register response:', data);
 
-      // SET USER DATA LANGSUNG DARI RESPONSE (konsisten dengan login)
       const userData = data.data?.user || data.user;
       if (userData) {
-        setUser({
+        const newUser = {
           id: userData.id || userData._id,
           email: userData.email,
           name: userData.name,
           role: userData.role,
           verified: userData.verified,
-        });
+        };
+        setUser(newUser);
+        
+        setTimeout(() => {
+          router.push('/dashboard');
+          router.refresh();
+        }, 100);
       }
-
-      // Tunggu sebentar untuk memastikan state ter-update
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Redirect ke dashboard
-      router.push('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
       throw error;
     } finally {
-      setLoading(false);
       setPostLoginLoading(false);
     }
   };
@@ -247,100 +276,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setUser(null);
       router.push('/auth/sign-in');
+      router.refresh();
     }
   };
 
-   // Initialize auth state on app load
-  useEffect(() => {
-    const initializeAuth = async () => {
-      try {
-        // Try to get current user
-        const userData = await getCurrentUser()
-        if (userData) {
-          setUser(userData)
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    initializeAuth()
-  }, [])
-
-  // Setup automatic token refresh
-  useEffect(() => {
-    if (!user) return
-
-    const REFRESH_INTERVAL = 15 * 60 * 1000 // 15 minutes
-
-    const refreshInterval = setInterval(async () => {
-      const success = await refreshToken()
-      if (success) {
-        // Update user data after token refresh
-        const userData = await getCurrentUser()
-        if (userData) {
-          setUser(userData)
-        }
-      }
-    }, REFRESH_INTERVAL)
-
-    return () => clearInterval(refreshInterval)
-  }, [user])
-
-  // Setup response interceptor for token refresh on 401 errors
-  useEffect(() => {
-    if (!user) return
-
-    const originalFetch = window.fetch
-
-    window.fetch = async (...args) => {
-      let response = await originalFetch(...args)
-
-      if (response.status === 401) {
-        // Token expired, try to refresh
-        const refreshSuccess = await refreshToken()
-        
-        if (refreshSuccess) {
-          // Retry the original request with new token
-          response = await originalFetch(...args)
-        } else {
-          // Refresh failed, logout user
-          await logout()
-        }
-      }
-
-      return response
-    }
-
-    return () => {
-      window.fetch = originalFetch
-    }
-  }, [user])
-
   const refreshUser = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-        credentials: 'include',
-        headers: {
-          'Cache-Control': 'no-cache',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const userData = data.data?.user || data.user;
-        if (userData) {
-          setUser({
-            id: userData.id || userData._id,
-            email: userData.email,
-            name: userData.name,
-            role: userData.role,
-            verified: userData.verified,
-          });
-          return true;
-        }
+      const userData = await getCurrentUser();
+      if (userData) {
+        setUser(userData);
+        return true;
       }
       return false;
     } catch (error) {
@@ -348,24 +293,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     }
   };
-
-   const getCurrentUser = async (): Promise<User | null> => {
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
-        method: 'GET',
-        credentials: 'include',
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        return data.data.user
-      }
-      return null
-    } catch (error) {
-      console.error('Error getting current user:', error)
-      return null
-    }
-  }
 
   return (
     <AuthContext.Provider
@@ -386,8 +313,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-
-
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -396,18 +321,17 @@ export const useAuth = () => {
   return context;
 };
 
-// Hook untuk menggunakan auth context
 export const useAuthUser = () => {
-  const { user } = useAuth()
-  return user
-}
+  const { user } = useAuth();
+  return user;
+};
 
 export const useAuthLoading = () => {
-  const { loading } = useAuth()
-  return loading
-}
+  const { loading } = useAuth();
+  return loading;
+};
 
 export const useAuthActions = () => {
-  const { login, logout, refreshToken } = useAuth()
-  return { login, logout, refreshToken }
-}
+  const { login, logout, refreshToken } = useAuth();
+  return { login, logout, refreshToken };
+};
