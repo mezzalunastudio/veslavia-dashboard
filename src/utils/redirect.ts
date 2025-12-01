@@ -1,4 +1,6 @@
 // utils/redirect.ts
+import { useRouter, usePathname } from 'next/navigation';
+
 export const safeRedirect = (url: string) => {
   if (typeof window === 'undefined') return;
   
@@ -12,7 +14,7 @@ export const safeRedirect = (url: string) => {
     window.location.href = url;
   } else {
     // Di local/development, gunakan Next.js router
-    const { router } = require('next/navigation');
+    const router = useRouter();
     router.push(url);
     router.refresh();
   }
