@@ -27,28 +27,21 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/contexts/AuthContext"
 import { useRouter } from "next/navigation"
-import { useEffect } from "react"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
-  const { user, logout, loading, refreshUser } = useAuth() 
+  const { user, logout, loading } = useAuth() 
   const router = useRouter()
 
-  // Pindahkan useEffect ke sini (di tingkat atas komponen)
-  useEffect(() => {
-    if (!user && !loading) {
-      console.log('NavUser: No user data, attempting refresh...');
-      refreshUser();
-    }
-  }, [user, loading, refreshUser]);
+  // HAPUS useEffect yang menyebabkan infinite loop
+  // refreshUser akan dipanggil otomatis oleh AuthContext saat initialize
 
   const HandleLogout = async (e: React.MouseEvent) => {
-    e.preventDefault() // Prevent default link behavior
-    e.stopPropagation() // Prevent event bubbling
+    e.preventDefault()
+    e.stopPropagation()
     
     try {
       await logout()
-      // Redirect will be handled by AuthContext
     } catch (error) {
       console.error('Logout failed:', error)
     }
