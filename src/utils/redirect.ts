@@ -1,7 +1,7 @@
 // utils/redirect.ts
 import { useRouter } from 'next/navigation';
 
-export const safeRedirect = (url: string) => {
+export const SafeRedirect = (url: string) => {
   if (typeof window === 'undefined') return;
   
   // Cek apakah di Vercel production
