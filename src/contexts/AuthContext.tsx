@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { SafeRedirect } from '@/utils/redirect';
 
 interface User {
   id: string;
@@ -33,10 +32,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const router = useRouter();
   const pathname = usePathname();
   
-  // Ref untuk mencegah multiple refresh calls
   const isRefreshing = useRef(false);
+  const isInitialized = useRef(false);
 
-  // Helper function untuk mendapatkan user data
   const getCurrentUser = useCallback(async (): Promise<User | null> => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/me`, {
@@ -92,7 +90,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [router]);
 
   const refreshUser = useCallback(async (): Promise<boolean> => {
-    // Prevent multiple simultaneous refresh calls
     if (isRefreshing.current) {
       console.log('Refresh already in progress, skipping...');
       return false;
@@ -114,12 +111,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [getCurrentUser]);
 
-  // SINGLE useEffect untuk initialize auth
+  // Initialize auth - hanya sekali
   useEffect(() => {
+    if (isInitialized.current) return;
+    
     const initializeAuth = async () => {
-      // Skip auth check untuk halaman auth
       if (pathname?.startsWith('/auth')) {
         setLoading(false);
+        isInitialized.current = true;
         return;
       }
 
@@ -135,17 +134,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
       } finally {
         setLoading(false);
+        isInitialized.current = true;
       }
     };
 
     initializeAuth();
-  }, [pathname, getCurrentUser]);
+  }, []); // Hanya run sekali
 
-  // Setup automatic token refresh
+  // Auto token refresh
   useEffect(() => {
     if (!user) return;
 
-    const REFRESH_INTERVAL = 14 * 60 * 1000; // 14 menit
+    const REFRESH_INTERVAL = 14 * 60 * 1000;
 
     const refreshInterval = setInterval(async () => {
       const success = await refreshToken();
@@ -174,12 +174,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(error.message || 'Login failed');
       }
 
-      const success = await refreshUser();
+      // Tunggu response dan set user
+      const data = await response.json();
+      const userData = data.data?.user || data.user;
       
-      if (success) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-        router.push('/dashboard');
-        router.refresh();
+      if (userData) {
+        const newUser = {
+          id: userData.id || userData._id,
+          email: userData.email,
+          name: userData.name,
+          role: userData.role,
+          verified: userData.verified,
+        };
+        setUser(newUser);
+        
+        // Tunggu state update, baru redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Hard navigation untuk memastikan middleware re-check
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -187,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, [refreshUser, router]);
+  }, []);
 
   const loginWithGoogle = useCallback(async (token: string) => {
     setPostLoginLoading(true);
@@ -219,9 +232,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         
-        setTimeout(() => {
-          SafeRedirect('/dashboard');
-        }, 100);
+        // Tunggu state update, baru redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Hard navigation
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Google login error:', error);
@@ -229,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, [router]);
+  }, []);
 
   const register = useCallback(async (email: string, password: string, name: string) => {
     setPostLoginLoading(true);
@@ -261,10 +276,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh();
-        }, 100);
+        // Tunggu state update, baru redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Hard navigation
+        window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -272,7 +288,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, [router]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {
@@ -284,10 +300,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout failed:', error);
     } finally {
       setUser(null);
-      router.push('/auth/sign-in');
-      router.refresh();
+      // Hard navigation untuk clear semua state
+      window.location.href = '/auth/sign-in';
     }
-  }, [router]);
+  }, []);
 
   return (
     <AuthContext.Provider
