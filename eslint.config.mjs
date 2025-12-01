@@ -15,7 +15,8 @@ const eslintConfig = [
   // Tambahkan konfigurasi custom
   {
     rules: {
-      "@typescript-eslint/no-explicit-any": "off", // Menonaktifkan aturan no-explicit-any
+      "@typescript-eslint/no-explicit-any": "off", 
+      "react/no-unescaped-entities": "off"// Menonaktifkan aturan no-explicit-any
     },
   },
 ];

@@ -34,7 +34,7 @@ export function NavUser() {
   const { user, logout, loading, refreshUser } = useAuth() 
   const router = useRouter()
 
-  const handleLogout = async (e: React.MouseEvent) => {
+  const HandleLogout = async (e: React.MouseEvent) => {
     e.preventDefault() // Prevent default link behavior
     e.stopPropagation() // Prevent event bubbling
     
@@ -158,7 +158,7 @@ if (!user || loading) {
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="cursor-pointer text-destructive focus:text-destructive"
-              onClick={handleLogout}
+              onClick={HandleLogout}
             >
               <LogOut className="mr-2 h-4 w-4" />
               Log out
