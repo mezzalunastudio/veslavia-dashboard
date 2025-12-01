@@ -131,51 +131,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(refreshInterval);
   }, [user]);
 
-  const login = async (email: string, password: string) => {
-    setPostLoginLoading(true);
-    try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: 'include',
-      });
+const login = async (email: string, password: string) => {
+  setPostLoginLoading(true);
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+      credentials: 'include',
+    });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Login failed');
-      }
-
-      const data = await response.json();
-      console.log('Login response:', data);
-
-      // Set user data
-      const userData = data.data?.user || data.user;
-      if (userData) {
-        const newUser = {
-          id: userData.id || userData._id,
-          email: userData.email,
-          name: userData.name,
-          role: userData.role,
-          verified: userData.verified,
-        };
-        setUser(newUser);
-        
-        // Tunggu state update, lalu redirect
-        setTimeout(() => {
-          router.push('/dashboard');
-          router.refresh(); // Force refresh untuk memastikan
-        }, 100);
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      throw error;
-    } finally {
-      setPostLoginLoading(false);
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Login failed');
     }
-  };
+
+    const data = await response.json();
+    const userData = data.data?.user || data.user;
+    
+    if (userData) {
+      setUser({
+        id: userData.id || userData._id,
+        email: userData.email,
+        name: userData.name,
+        role: userData.role,
+        verified: userData.verified,
+      });
+      
+      // Hard redirect (last resort)
+      window.location.href = '/dashboard';
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    setPostLoginLoading(false);
+    throw error;
+  }
+};
 
   const loginWithGoogle = async (token: string) => {
     setPostLoginLoading(true);
@@ -195,7 +188,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       const data = await response.json();
-      console.log('Google login response:', data);
 
       const userData = data.data?.user || data.user;
       if (userData) {
