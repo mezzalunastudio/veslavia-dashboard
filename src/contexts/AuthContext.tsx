@@ -148,25 +148,22 @@ const login = async (email: string, password: string) => {
       throw new Error(error.message || 'Login failed');
     }
 
-    const data = await response.json();
-    const userData = data.data?.user || data.user;
+    // Refresh user data terlebih dahulu
+    const success = await refreshUser();
     
-    if (userData) {
-      setUser({
-        id: userData.id || userData._id,
-        email: userData.email,
-        name: userData.name,
-        role: userData.role,
-        verified: userData.verified,
-      });
+    if (success) {
+      // Tunggu sejenak untuk memastikan state terupdate
+      await new Promise(resolve => setTimeout(resolve, 50));
       
-      // Hard redirect (last resort)
-      window.location.href = '/dashboard';
+      // Redirect ke dashboard
+      router.push('/dashboard');
+      router.refresh();
     }
   } catch (error) {
     console.error('Login error:', error);
-    setPostLoginLoading(false);
     throw error;
+  } finally {
+    setPostLoginLoading(false);
   }
 };
 
