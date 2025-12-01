@@ -188,11 +188,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         
-        // Tunggu state update, baru redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Hard navigation untuk memastikan middleware re-check
-        window.location.href = '/dashboard';
+        // Gunakan router.push untuk navigate
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -200,7 +197,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const loginWithGoogle = useCallback(async (token: string) => {
     setPostLoginLoading(true);
@@ -232,11 +229,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         
-        // Tunggu state update, baru redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Hard navigation
-        window.location.href = '/dashboard';
+        // Gunakan router.push untuk navigate
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Google login error:', error);
@@ -244,7 +238,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const register = useCallback(async (email: string, password: string, name: string) => {
     setPostLoginLoading(true);
@@ -276,11 +270,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         setUser(newUser);
         
-        // Tunggu state update, baru redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Hard navigation
-        window.location.href = '/dashboard';
+        // Gunakan router.push untuk navigate
+        router.push('/dashboard');
       }
     } catch (error) {
       console.error('Registration error:', error);
@@ -288,7 +279,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setPostLoginLoading(false);
     }
-  }, []);
+  }, [router]);
 
   const logout = useCallback(async () => {
     try {
@@ -300,10 +291,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Logout failed:', error);
     } finally {
       setUser(null);
-      // Hard navigation untuk clear semua state
-      window.location.href = '/auth/sign-in';
+      // Gunakan router.push untuk navigate
+      router.push('/auth/sign-in');
     }
-  }, []);
+  }, [router]);
 
   return (
     <AuthContext.Provider
