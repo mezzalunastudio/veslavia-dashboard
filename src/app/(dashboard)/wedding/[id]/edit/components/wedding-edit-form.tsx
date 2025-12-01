@@ -40,82 +40,80 @@ export default function WeddingEditForm({ weddingId, onTabChange }: WeddingEditF
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const form = useForm<WeddingFormValues>({
-    resolver: zodResolver(weddingFormSchema),
-    defaultValues: {
-      path: "",
-      category: "",
-      isActive: true,
-      groom: {
-        shortName: "",
-        fullName: "",
-        fullNameWithTitle: "",
-        fatherName: "",
-        motherName: "",
-        orderInFamily: "",
-        instagram: "",
-      },
-      bride: {
-        shortName: "",
-        fullName: "",
-        fullNameWithTitle: "",
-        fatherName: "",
-        motherName: "",
-        orderInFamily: "",
-        instagram: "",
-      },
-      quotes: {
-        quote1: "",
-        quote1From: "",
-        quote2: "",
-        quote2From: "",
-      },
-      akad: {
-        isAkad:true,
-        timeRange:
-        {
-          start: "",
-          end: ""
-        },
-        date: "",
-        place: "",
-        address: "",
-        liveLink: "",
-      },
-      resepsi: {
-        eventCategory:"",
-        isResepsi: true,
-        timeRange:
-        {
-          start: "",
-          end: ""
-        },
-        date: "",
-        place: "",
-        address: "",
-        liveLink: "",
-        mapsLink: "",
-      },
-      loveStory: {
-        loveStoryActived: false,
-        firstMeet: "",
-        theProposal: "",
-        marriage: "",
-      },
-      gift: {
-        isRecieveGift: false,
-        showGift:true,
-        giftAddress: "",
-        nameNoRek1: "",
-        groomBank: "",
-        groomNoRek: "",
-        nameNoRek2: "",
-        brideBank: "",
-        brideNoRek: "",
-      },
-      dressColors: [],
+const form = useForm<WeddingFormValues>({
+  resolver: zodResolver(weddingFormSchema),
+  defaultValues: {
+    path: "",
+    category: "",
+    isActive: true,
+    groom: {
+      shortName: "",
+      fullName: "",
+      fullNameWithTitle: "",
+      fatherName: "",
+      motherName: "",
+      orderInFamily: "",
+      instagram: "",
     },
-  })
+    bride: {
+      shortName: "",
+      fullName: "",
+      fullNameWithTitle: "",
+      fatherName: "",
+      motherName: "",
+      orderInFamily: "",
+      instagram: "",
+    },
+    quotes: {
+      quote1: "",
+      quote1From: "",
+      quote2: "",
+      quote2From: "",
+    },
+    akad: {
+      isAkad: true,
+      timeRange: {
+        start: "",
+        end: ""
+      },
+      date: "",
+      place: "",
+      address: "",
+      liveLink: "",
+    },
+    resepsi: {
+      eventCategory: "",
+      isResepsi: true,
+      timeRange: {
+        start: "",
+        end: ""
+      },
+      date: "",
+      place: "",
+      address: "",
+      liveLink: "",
+      mapsLink: "",
+    },
+    loveStory: {
+      loveStoryActived: false,
+      firstMeet: "",
+      theProposal: "",
+      marriage: "",
+    },
+    gift: {
+      isRecieveGift: false,
+      showGift: true,
+      giftAddress: "",
+      nameNoRek1: "",
+      groomBank: "",
+      groomNoRek: "",
+      nameNoRek2: "",
+      brideBank: "",
+      brideNoRek: "",
+    },
+    dressColors: [],
+  },
+})
 
   // Load wedding data
   useEffect(() => {
@@ -127,8 +125,8 @@ export default function WeddingEditForm({ weddingId, onTabChange }: WeddingEditF
 
         // Set form values
         form.reset({
-          path: weddingData.path || "",
-          category: weddingData.category || "",
+          path: weddingData.path || "" as string | undefined,
+          category: weddingData.category || "" as string | undefined,
           isActive: weddingData.isActive ?? true,
           groom: weddingData.groom,
           bride: weddingData.bride,

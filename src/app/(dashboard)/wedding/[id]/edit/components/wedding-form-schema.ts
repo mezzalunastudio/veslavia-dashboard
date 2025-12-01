@@ -5,7 +5,7 @@ export const weddingFormSchema = z.object({
   // Basic Info
   path: z.string().min(1, "Path is required").regex(/^[a-z0-9-]+$/, "Path can only contain lowercase letters, numbers, and hyphens"),
   category: z.string().min(1, "Category is required"),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(),
 
   // Groom Information
   groom: z.object({
@@ -39,12 +39,11 @@ export const weddingFormSchema = z.object({
 
   // Akad Ceremony
   akad: z.object({
-    isAkad:z.boolean().default(true),
-    time: z.string().optional(),
+    isAkad:z.boolean(),
     timeRange: z.object({
-      start: z.string().optional(),
-      end: z.string().optional(),
-    }).optional(),
+      start: z.string(),
+      end: z.string(),
+    }),
     date: z.string().min(1, "Akad date is required"),
     place: z.string().min(1, "Akad place is required"),
     address: z.string().min(1, "Akad address is required"),
@@ -53,23 +52,22 @@ export const weddingFormSchema = z.object({
 
   // Resepsi Ceremony
   resepsi: z.object({
-    isResepsi: z.boolean().default(true),
+    isResepsi: z.boolean(),
     eventCategory:z.string().min(1, "event category is required"),
-    time: z.string().optional(),
     timeRange: z.object({
-      start: z.string().optional(),
-      end: z.string().optional(),
-    }).optional(),
-    date: z.string().optional(),
-    place: z.string().optional(),
-    address: z.string().optional(),
-    liveLink: z.string().optional(),
-    mapsLink: z.string().optional(),
+      start: z.string(),
+      end: z.string(),
+    }),
+    date: z.string(),
+    place: z.string(),
+    address: z.string(),
+    liveLink: z.string(),
+    mapsLink: z.string(),
   }),
 
   // Love Story
   loveStory: z.object({
-    loveStoryActived: z.boolean().default(false),
+    loveStoryActived: z.boolean(),
     firstMeet: z.string().optional(),
     theProposal: z.string().optional(),
     marriage: z.string().optional(),
@@ -77,8 +75,8 @@ export const weddingFormSchema = z.object({
 
   // Gift Information
   gift: z.object({
-    isRecieveGift: z.boolean().default(false),
-    showGift:z.boolean().default(false),
+    isRecieveGift: z.boolean(),
+    showGift:z.boolean(),
     giftAddress: z.string().optional(),
     nameNoRek1: z.string().optional(),
     groomBank: z.string().optional(),
