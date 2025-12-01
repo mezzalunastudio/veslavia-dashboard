@@ -34,6 +34,14 @@ export function NavUser() {
   const { user, logout, loading, refreshUser } = useAuth() 
   const router = useRouter()
 
+  // Pindahkan useEffect ke sini (di tingkat atas komponen)
+  useEffect(() => {
+    if (!user && !loading) {
+      console.log('NavUser: No user data, attempting refresh...');
+      refreshUser();
+    }
+  }, [user, loading, refreshUser]);
+
   const HandleLogout = async (e: React.MouseEvent) => {
     e.preventDefault() // Prevent default link behavior
     e.stopPropagation() // Prevent event bubbling
@@ -44,36 +52,29 @@ export function NavUser() {
     } catch (error) {
       console.error('Logout failed:', error)
     }
-
-    useEffect(() => {
-    if (!user && !loading) {
-      console.log('NavUser: No user data, attempting refresh...');
-      refreshUser();
-    }
-  }, [user, loading, refreshUser]);
   }
 
-if (!user || loading) {
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          size="lg"
-          className="cursor-pointer opacity-50 animate-pulse"
-          disabled
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
-            <div className="h-4 w-4 bg-muted-foreground/20 rounded-full" />
-          </div>
-          <div className="grid flex-1 text-left text-sm leading-tight">
-            <span className="truncate font-medium bg-muted-foreground/20 rounded h-4 w-24 mb-1"></span>
-            <span className="text-muted-foreground truncate text-xs bg-muted-foreground/20 rounded h-3 w-32"></span>
-          </div>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </SidebarMenu>
-  )
-}
+  if (!user || loading) {
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton
+            size="lg"
+            className="cursor-pointer opacity-50 animate-pulse"
+            disabled
+          >
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted">
+              <div className="h-4 w-4 bg-muted-foreground/20 rounded-full" />
+            </div>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium bg-muted-foreground/20 rounded h-4 w-24 mb-1"></span>
+              <span className="text-muted-foreground truncate text-xs bg-muted-foreground/20 rounded h-3 w-32"></span>
+            </div>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
+  }
 
   return (
     <SidebarMenu>
