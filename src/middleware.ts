@@ -87,7 +87,9 @@ async function checkAuth(request: NextRequest): Promise<boolean> {
     // Check auth via API
     const response = await fetch(`${API_URL}/auth/me`, {
       method: 'GET',
-      headers,
+      headers: {
+    cookie: request.headers.get('cookie') || ''
+  },
       credentials: 'include',
     })
 
