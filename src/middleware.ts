@@ -89,8 +89,7 @@ async function checkAuth(request: NextRequest): Promise<boolean> {
       method: 'GET',
       headers: {
     cookie: request.headers.get('cookie') || ''
-  },
-      credentials: 'include',
+  }
     })
 
     return response.ok
